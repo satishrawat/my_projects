@@ -1,0 +1,23 @@
+node('slave') {
+    stage('Checkout') {
+        git branch: 'master',
+	        credentialsId: 'github',
+            url: 'https://github.com/satishrawat/todo.git'
+    }
+    stage('Build'){
+        container('slave') {
+            sh 'mvn clean install'
+			
+        }
+    }
+	stage('Integration_test'){
+        container('slave') {
+            sh 'mvn verify'
+        }
+    }
+    stage('unit_test'){
+        container('slave') {
+            sh 'mvn test'
+        }
+    }
+}

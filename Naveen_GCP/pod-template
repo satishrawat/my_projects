@@ -1,0 +1,86 @@
+kind: Pod
+metadata:
+  name: slave-pod
+spec:
+  containers:
+  - name: jnlp
+    image: us.gcr.io/project/jnlp-slave:3.29-1
+    imagePullPolicy: Always
+    command: ["/bin/sh", "-c"]
+    args: ["sleep 30; echo 'Istio proxy needs to come online before jnlp'; jenkins-slave"]
+  - name: maven
+    image: us.gcr.io/project/maven:3.6.1-jdk-12
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+      - name: my-pvc-nfs
+        mountPath: /root/.m2
+  - name: kaniko
+    image: us.gcr.io/project/kaniko-project/executor:debug
+    imagePullPolicy: Always
+    command:
+    - /busybox/cat
+    tty: true
+    volumeMounts:
+      - name: kaniko-secret
+        mountPath: /secret
+    env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/kaniko-secret.json
+  - name: unzip
+    image: us.gcr.io/project/unzip:latest
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+  - name: helm-2
+    image: us.gcr.io/project/alpine/helm:2.14.3
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+  - name: helm-3
+    image: us.gcr.io/project/alpine/helm:3.0.0-beta.2
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+  - name: terraform-12
+    image: us.gcr.io/project/hashicorp/terraform:0.12.7
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+  - name: jq
+    image: us.gcr.io/project/jq:v1
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+  - name: kubectl
+    image: us.gcr.io/project/cloud-builders/kubectl:latest
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+  - name: golang
+    image: us.gcr.io/project/golang:1.13.0
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+  - name: google-cloud-sdk
+    image: us.gcr.io/project/google/cloud-sdk:latest
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
+  volumes:
+  - name: kaniko-secret
+    secret:
+      secretName: kaniko-secret
+  - name: my-pvc-nfs
+    persistentVolumeClaim:
+      claimName: project-pvc
