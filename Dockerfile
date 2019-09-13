@@ -1,5 +1,5 @@
 FROM java:8
 WORKDIR /
-ADD kaniko/*.jar HelloWorld.jar
+ADD kaniko/*.war HelloWorld.war
 EXPOSE 8080
-CMD java -jar HelloWorld.jar
+CMD java -jar HelloWorld.war
