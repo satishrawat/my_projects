@@ -33,7 +33,7 @@ spec:
         app: hello-world
     spec:
       containers:
-        - image: gcr.io/kmsh-250102/kaniko-push:74
+        - image: gcr.io/kmsh-250102/kaniko-push:75
           imagePullPolicy: Always
           name: hello-world
           ports:
