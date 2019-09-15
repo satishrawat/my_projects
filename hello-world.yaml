@@ -35,7 +35,7 @@ spec:
         app: test
     spec:
       containers:
-        - image: gcr.io/kmsh-250102/kaniko-push:74
+        - image: gcr.io/kmsh-250102/kaniko-push
           imagePullPolicy: Always
           name: test
           ports:
