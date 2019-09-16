@@ -46,4 +46,4 @@ spec:
       volumes:
       - name: configmap-volume
         configMap:
-            name: dev-configmap
+            name: db-configmap
