@@ -1,9 +1,10 @@
-sleep 60
-for _ in $(seq 10); do
+sleep 30
+for _ in $(seq 1); do
   curl -fs $url > /dev/null
   if [ "$?" = "0" ]; then
     echo 'smoke test passed'
   else
-    kubectl rollout history deployment/test -n $environment
+    echo 'its failed performing rollback of deployment'
+    kubectl rollout undo deployment/test -n $environment
   fi
 done
