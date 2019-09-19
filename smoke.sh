@@ -1,5 +1,3 @@
-echo $url
-echo $environment
 for _ in $(seq 10); do
   curl -fs $url > /dev/null
   if [ "$?" = "0" ]; then
