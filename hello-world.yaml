@@ -9,7 +9,7 @@ spec:
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 8090
+    targetPort: 8080
   selector:
     app: test
   type: LoadBalancer
