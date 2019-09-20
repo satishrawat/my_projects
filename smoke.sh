@@ -8,6 +8,6 @@ for _ in $(seq 1); do
   else
     echo 'its failed performing rollback of deployment'
     kubectl rollout undo deployment/test -n $environment
-    error('Aborting the build.')
+    exit -1
   fi
 done
