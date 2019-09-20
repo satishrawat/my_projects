@@ -39,7 +39,7 @@ metadata:
   name: test
   
 spec:  
-  replicas: 0
+  replicas: 1
   minReadySeconds: 15
   strategy:
     type: RollingUpdate
