@@ -1,0 +1,71 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'slave'
+      yaml """
+kind: Pod
+metadata:
+  name: kaniko
+spec:
+  containers:
+  - name: jnlp
+    workingDir: /home/jenkins
+    
+    
+  - name: maven
+    workingDir: /home/jenkins
+    image: gcr.io/kmsh-250102/maven-slave
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true   	
+  - name: kaniko
+    workingDir: /home/jenkins
+    image: gcr.io/kaniko-project/executor:debug
+    imagePullPolicy: Always
+    command:
+    - /busybox/cat
+    tty: true
+    volumeMounts:
+      - name: kaniko-secret
+        mountPath: /secret
+    env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/kaniko-secret.json		
+  volumes:
+    - name: kaniko-secret
+      secret:
+        secretName: kaniko-secret
+"""
+    }
+  }
+  stages {
+    stage('checkout_code') {      
+      steps {
+        container(name: 'maven') {                    
+          git branch: 'master',
+	      credentialsId: 'github',
+          url: 'https://github.com/satishrawat/my_projects.git' 
+        }
+      }
+    }
+	
+	stage('Deploy on dev') {	 	
+      steps {
+        container(name: 'maven', shell: '/bin/bash') { 		
+		 step {	
+			sh 'code=$(curl -Is "http://35.239.92.56:80/" | head -1)'
+			}	
+				when {
+				  environment name: 'code', value: 'HTTP/1.1 200 OK'
+				}
+				steps {
+						echo "Hello, it's passed "
+						   
+				}									      
+        }
+      }
+    }
+	
+  }
+}
