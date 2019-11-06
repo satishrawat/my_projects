@@ -1,0 +1,45 @@
+Sprint 1: 1 week
+Task list:
+1. Build a agent image with the required dependencies: According to the pod template
+   - jnlp
+   - git
+   - maven
+   - jdk
+   - wget
+   - curl
+   - jq
+   - unzip 
+   - helm2
+   - helm3 
+   - terraform 12 
+   - golang
+   - gradle
+   - kubectl 
+   - google-cloud-sdk
+   - kaniko with gcr and nexus mountsm -- refer: https://github.com/GoogleContainerTools/kaniko and look for "Running kaniko in a Kubernetes cluster"
+            example: https://github.com/jenkinsci/kubernetes-plugin/blob/master/examples/kaniko.groovy
+   
+
+2. Dynamically change the pod's label name from external file/source - Jenkins library
+
+3. Build true CICD --- (try terratest for image testing- not sure if it support java/maven)
+   - compile
+   - test 
+   - package
+   - build image -- attest the image - (gcp binary authorizations) -- we can do this later
+   - image test -- deploy to temporory namespace and hit the url to check the health --- smoke test-- once it is green, delete the temp ns
+   - push image to gcr
+   - deploy to dev ns 
+   - run integration test
+   - based on the result - proceed
+   - deploy to qa ns
+   - run integration test 
+   - based on the result - proceed or rollback to the previous version if the test fails - we have to show the failed scenario
+   - proceed with manual approval
+
+4. Notifications to google chat -- 
+
+5. Monitoring and Logging setup -- Think about this - Ideas
+
+Sprint 2: 1 week
+6. DB changes include in CICD

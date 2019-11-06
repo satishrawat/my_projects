@@ -1,0 +1,274 @@
+##list the google project##
+$gcloud projects list
+
+##create env of project ID ##
+$PROJECT_ID=kmsh-250102
+
+$gcloud config set project $PROJECT_ID
+
+##We need a directory for storing our configuration files##
+
+$mkdir binauthz-codelab ; cd binauthz-codelab
+
+
+##enable APIs of GKE to create and manage your cluster##
+$gcloud services enable container.googleapis.com
+
+##enable BinAuthz to manage a policy on the cluster##
+$gcloud services enable binaryauthorization.googleapis.com
+
+##now create a cluster ##
+$gcloud container clusters create binauthz-poc --zone us-central1-a
+
+##connect to cluster ##
+$gcloud container clusters get-credentials binauthz-poc --zone us-central1-a
+
+
+##create a Dockerfile just simple#
+
+FROM alpine
+CMD tail -f /dev/null
+
+#set the GCR path we will use to host the container image
+$CONTAINER_PATH=gcr.io/$PROJECT_ID
+$IMAGE_NAME=alpine
+
+#build container
+$docker build -t $CONTAINER_PATH/$IMAGE_NAME ./
+
+#push to GCR We have already authenticated the gcr using json key #
+
+$docker push $CONTAINER_PATH/$IMAGE_NAME
+
+$kubectl run hello-world --image $CONTAINER_PATH/$IMAGE_NAME
+
+##The first step is to enable Binary Authorization on the cluster:## it will take some time .
+$gcloud beta container clusters update binauthz-poc --enable-binauthz --zone us-central1-a
+
+
+##Create a policy.yaml file ##
+
+	admissionWhitelistPatterns:
+    - namePattern: gcr.io/google_containers/*
+    - namePattern: gcr.io/google-containers/*
+	- namePattern: k8s.gcr.io/*
+    defaultAdmissionRule:
+      evaluationMode: ALWAYS_DENY
+      enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+
+###Now apply the policy ##
+
+$gcloud beta container binauthz policy import policy.yaml	  
+
+##Now, our policy should prevent any custom container images from being deployed on the cluster. We can verify this by deleting our pod and attempting to run it again:##
+
+$kubectl delete deployment --all
+$kubectl delete event --all
+
+##create a deploymenet with unauthorized image , it will not run any pods ##
+$kubectl run hello-world --image $CONTAINER_PATH/$IMAGE_NAME
+
+$kubectl get pods
+
+##get logs of rejection listed as a kubectl event##
+$kubectl get event --template '{{range.items}}{{"\033[0;36m"}}{{.reason}}:{{"\033[0m"}}{{.message}}{{"\n"}}{{end}}'
+
+###Now Setup a Attester for Image Attesting ##
+
+##Create ENV ##
+$NOTE_ID=satish-attestor-note
+
+##ceate a json file which containe the note create_note_request.json  ##
+
+{
+  "name": "projects/${PROJECT_ID}/notes/${NOTE_ID}",
+  "attestation_authority": {
+    "hint": {
+      "human_readable_name": "This note represents an attestation authority"
+    }
+  }
+}
+
+
+##Now, submit the Note to our project using the Container Analysis API##
+
+$curl -vvv -X POST \
+    -H "Content-Type: application/json"  \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)"  \
+    --data-binary @./create_note_request.json  \
+    "https://containeranalysis.googleapis.com/v1alpha1/projects/${PROJECT_ID}/notes/?noteId=${NOTE_ID}"
+	  
+##We can get the already added notes ##
+
+$curl -vvv  \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    "https://containeranalysis.googleapis.com/v1alpha1/projects/${PROJECT_ID}/notes/${NOTE_ID}"
+	
+	
+####Now, our Note is saved within the Container Analysis API. To make use of our attestor, we must also register the note with Binary Authorization###
+
+$ATTESTOR_ID=my-binauthz-attestor
+
+$gcloud beta container binauthz attestors create $ATTESTOR_ID \
+    --attestation-authority-note=$NOTE_ID \
+    --attestation-authority-note-project=$PROJECT_ID
+
+###To verify everything works as expected, you can print out the list of registered authorities# it should print NUM_PUBLIC_KEYS : 0 ###
+$gcloud beta container binauthz attestors list
+
+
+##Adding IAM Role##
+Before we can use this attestor, we must grant Binary Authorization the appropriate permissions to view the Container Analysis Note we created. This will allow Binary Authorization to query the Container Analysis API to ensure that each pod has been signed and approved to run.
+
+###First, we need to find the service account's email address###
+$PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}"  --format="value(projectNumber)")
+$BINAUTHZ_SA_EMAIL="service-${PROJECT_NUMBER}@gcp-sa-binaryauthorization.iam.gserviceaccount.com"
+
+##Now print the service account email address  and copy the output##
+$echo $BINAUTHZ_SA_EMAIL            
+
+##Now, we can use it to create a Container Analysis IAM JSON request create the file "iam_request.json"##
+
+Note : in below file instead of $BINAUTHZ_SA_EMAIL  put the value of this environment variable , means the service account complete email .
+
+{
+  'resource': 'projects/$PROJECT_ID/notes/$NOTE_ID',
+  'policy': {
+    'bindings': [
+      {
+        'role': 'roles/containeranalysis.notes.occurrences.viewer',
+        'members': [
+          'serviceAccount:$BINAUTHZ_SA_EMAIL'
+        ]
+      }
+    ]
+  }
+}
+
+
+###We can make a curl request to grant the necessary IAM role###
+
+$curl -X POST  \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    --data-binary @./iam_request.json \
+    "https://containeranalysis.googleapis.com/v1alpha1/projects/$PROJECT_ID/notes/$NOTE_ID:setIamPolicy"
+
+##Finally, our authority needs to create a cryptographic key pair that can be used to sign container images. We can do this through gpg, which is available through the Cloud Shell##	
+
+$sudo apt-get install rng-tools -y
+$sudo rngd -r /dev/urandom
+
+$gpg --batch --gen-key <(
+    cat <<- EOF
+      Key-Type: RSA
+      Key-Length: 2048
+      Name-Real: Demo Signing Role
+      Name-Email: attestor@example.com
+      %commit
+EOF
+)
+
+##kill the process##
+$sudo kill -9 $(pidof rngd)
+
+##Now, pull the public key out of gpg and save it to our working directory##
+$gpg --armor --export attestor@example.com> ./public.pgp
+
+##Associate the key with our authority through the gcloud binauthz command##
+$gcloud beta container binauthz attestors public-keys add --attestor=$ATTESTOR_ID  --public-key-file=./public.pgp
+
+##If we print the list of authorities again, you should now see a key registered# now we should have NUM_PUBLIC_KEYS:1 ##
+$gcloud beta container binauthz attestors list
+
+
+
+
+
+
+#################################################################################################################################################################
+As we have setup our attester and authorized repositoroes policy ,Here Now We are Going to Attest the Existing Image , We can attest any newly pulled image as well from this step .
+Note : for new image pull or create a new image and tag the image with gcr path and push .
+
+
+##existing image name on gcr which we want to attest##
+$IMAGE_NAME=jenkins
+
+##this will fetch the sha value of gcr image which is going to attest##
+$DIGEST=$(gcloud container images describe ${CONTAINER_PATH}/$IMAGE_NAME --format='get(image_summary.digest)')
+
+##putting the image sha value in payload.json file ##
+$gcloud beta container binauthz create-signature-payload --artifact-url="${CONTAINER_PATH}/$IMAGE_NAME@${DIGEST}"  > ./payload.json
+
+##verify that image sha value save in payload file  ##
+$cat payload.json
+
+##Create a signature file "signature.pgp" ##
+$touch signature.pgp
+
+##Now, we can sign the payload, representing our approval of the associated container image##
+$gpg \
+    --local-user  attestor@example.com \
+    --armor \
+    --output ./signature.pgp \
+    --sign ./payload.json
+
+
+###To make verification easier, along with the signature we'll need to find the fingerprint (a unique id) of our public key, and store it in an environment variable:##
+$KEY_FINGERPRINT=$(gpg --list-keys attestor@example.com | sed -n '2p')
+
+$gcloud beta container binauthz attestations create \
+   --artifact-url="${CONTAINER_PATH}/$IMAGE_NAME@${DIGEST}" \
+   --attestor=$ATTESTOR_ID \
+   --attestor-project=$PROJECT_ID \
+   --signature-file=./signature.pgp  \
+   --pgp-key-fingerprint="$KEY_FINGERPRINT"
+
+##list the attested images##
+$gcloud beta container binauthz attestations list --attestor=$ATTESTOR_ID --attestor-project=$PROJECT_ID
+
+##update the policy to deploy from any repository which is attested # put below content in file "updated_policy.yaml"##
+##in my case $PROJECT_ID and $ATTESTOR_ID variable not working so i have put the value inside the file and add the your project gcr repository in this file "- namePattern: gcr.io/kmsh-250102/*"#####
+
+    admissionWhitelistPatterns:
+    - namePattern: gcr.io/google_containers/*
+    - namePattern: k8s.gcr.io/*
+	- namePattern: gcr.io/kmsh-250102/*
+    defaultAdmissionRule:
+      evaluationMode: REQUIRE_ATTESTATION
+      enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+      requireAttestationsBy:
+      - projects/$PROJECT_ID/attestors/$ATTESTOR_ID
+##apply the update policy ##
+
+$gcloud beta container binauthz policy import updated_policy.yaml
+	  
+
+
+##Run the deployment with attested image it will run if we run deployment without attested image it will not launch the pods ##
+
+$kubectl run myapp --image ${CONTAINER_PATH}/$IMAGE_NAME
+
+OR
+
+
+$kubectl run myapp --image gcr.io/myprojeectnameiwthid/imagename
+
+
+
+##list the denied pods##
+$kubectl get event --template '{{range.items}}{{"\033[0;36m"}}{{.reason}}:{{"\033[0m"}}{{.message}}{{"\n"}}{{end}}'   
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
