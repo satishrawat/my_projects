@@ -36,9 +36,9 @@
               "imageDescription": {
                 "account": "gcr",
                 "fromTrigger": true,
-                "imageId": "gcr.io/PROJECT/sample-app:v.*",
+                "imageId": "gcr.io/dvps-learning/sample-app:v.*",
                 "registry": "gcr.io",
-                "repository": "PROJECT/sample-app",
+                "repository": "dvps-learning/sample-app",
                 "tag": "v.*"
               },
               "imagePullPolicy": "ALWAYS",
@@ -47,7 +47,7 @@
                 "memory": null
               },
               "livenessProbe": null,
-              "name": "PROJECT-sample-app",
+              "name": "dvps-learning-sample-app",
               "ports": [
                 {
                   "containerPort": 8080,
@@ -141,9 +141,9 @@
               "imageDescription": {
                 "account": "gcr",
                 "fromTrigger": true,
-                "imageId": "gcr.io/PROJECT/sample-app:v.*",
+                "imageId": "gcr.io/dvps-learning/sample-app:v.*",
                 "registry": "gcr.io",
-                "repository": "PROJECT/sample-app",
+                "repository": "dvps-learning/sample-app",
                 "tag": "v.*"
               },
               "imagePullPolicy": "ALWAYS",
@@ -152,7 +152,7 @@
                 "memory": null
               },
               "livenessProbe": null,
-              "name": "PROJECT-sample-app",
+              "name": "dvps-learning-sample-app",
               "ports": [
                 {
                   "containerPort": 8080,
@@ -236,9 +236,9 @@
         "imageDescription": {
           "account": "gcr",
           "fromTrigger": true,
-          "organization": "PROJECT",
+          "organization": "dvps-learning",
           "registry": "gcr.io",
-          "repository": "PROJECT/sample-app",
+          "repository": "dvps-learning/sample-app",
           "tag": "v.*"
         },
         "name": "1494826281215",
@@ -270,9 +270,9 @@
         "imageDescription": {
           "account": "gcr",
           "fromTrigger": true,
-          "organization": "PROJECT",
+          "organization": "dvps-learning",
           "registry": "gcr.io",
-          "repository": "PROJECT/sample-app",
+          "repository": "dvps-learning/sample-app",
           "tag": "v.*"
         },
         "name": "1494826281215",
@@ -327,16 +327,16 @@
               "imageDescription": {
                 "account": "gcr",
                 "fromTrigger": true,
-                "imageId": "gcr.io/PROJECT/sample-app:v.*",
+                "imageId": "gcr.io/dvps-learning/sample-app:v.*",
                 "registry": "gcr.io",
-                "repository": "PROJECT/sample-app",
+                "repository": "dvps-learning/sample-app",
                 "tag": "v.*"
               },
               "imagePullPolicy": "ALWAYS",
               "lifecycle": null,
               "limits": null,
               "livenessProbe": null,
-              "name": "PROJECT-sample-app",
+              "name": "dvps-learning-sample-app",
               "ports": [
                 {
                   "containerPort": 80,
@@ -434,16 +434,16 @@
               "imageDescription": {
                 "account": "gcr",
                 "fromTrigger": true,
-                "imageId": "gcr.io/PROJECT/sample-app:v.*",
+                "imageId": "gcr.io/dvps-learning/sample-app:v.*",
                 "registry": "gcr.io",
-                "repository": "PROJECT/sample-app",
+                "repository": "dvps-learning/sample-app",
                 "tag": "v.*"
               },
               "imagePullPolicy": "ALWAYS",
               "lifecycle": null,
               "limits": null,
               "livenessProbe": null,
-              "name": "PROJECT-sample-app",
+              "name": "dvps-learning-sample-app",
               "ports": [
                 {
                   "containerPort": 80,
@@ -519,10 +519,10 @@
       "account": "gcr",
       "application": "gceme",
       "enabled": true,
-      "organization": "PROJECT",
+      "organization": "dvps-learning",
       "pipeline": "61372c70-62af-422f-9565-e1975a758612",
       "registry": "gcr.io",
-      "repository": "PROJECT/sample-app",
+      "repository": "dvps-learning/sample-app",
       "status": [
         "successful"
       ],
