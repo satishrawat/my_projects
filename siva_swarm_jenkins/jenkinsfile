@@ -17,36 +17,30 @@ pipeline {
         NEXUS_CREDENTIAL_ID = "nexus"
     }  
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git credentialsId: 'github', url: 'https://github.com/fabriciomaciel/springBootWas.git', branch: 'master'
             }
         }
-		stage('Build') {
+		stage("build") {
             steps {
-            sh 'mvn clean install -DskipTests=true -Dv=${BUILD_NUMBER}'
-				script {        
-					currentBuild.displayName= " #icmQ | ${BUILD_NUMBER}"
-        }}
-        }
-        stage('Sonarqube') {
-            steps {
-                sh 'mvn sonar:sonar -Dsonar.projectKey=siva-ci-ppl -Dsonar.host.url=http://35.208.116.237:9000 -Dsonar.login=49e2183b42728da88a365442040390c506a9e915'
-            }
-        }
-        stage("build") {
-            steps {
-                sh 'mvn clean install -Dmaven.test.failure.ignore=true'
+                sh 'mvn clean install -Dmaven.test.failure.ignore=false'
             }
         
     
 			post {
 				always {
-					archive "target/**/*"
+					archiveArtifacts "target/**/*"
 					junit 'target/surefire-reports/*.xml'
         }
 		}
 		}
+        stage('Sonarqube Code Analyses') {
+            steps {
+                sh 'mvn sonar:sonar -Dsonar.projectKey=siva-ci-ppl -Dsonar.host.url=http://35.208.116.237:9000 -Dsonar.login=49e2183b42728da88a365442040390c506a9e915'
+            }
+        }
+        
 		stage("publish to nexus") {
             steps {
                 script {
